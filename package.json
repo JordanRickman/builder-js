@@ -1,0 +1,26 @@
+{
+  "name": "builder-pattern",
+  "version": "0.1.0",
+  "description": "A pure JS helper for the builder design pattern.",
+  "main": "builder.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JordanRickman/builder-js.git"
+  },
+  "keywords": [
+    "builder"
+  ],
+  "author": "Jordan Rickman",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JordanRickman/builder-js/issues"
+  },
+  "homepage": "https://github.com/JordanRickman/builder-js#readme",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.2.0"
+  }
+}

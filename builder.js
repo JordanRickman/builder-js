@@ -74,3 +74,5 @@ function Builder(paramspec, cnstr) {
 
   return Bldr;
 }
+
+module.exports = Builder;
