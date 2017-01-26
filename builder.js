@@ -1,3 +1,5 @@
+'use strict';
+
 function captlize1stChar(str) {
   return str.slice(0,1).toUpperCase() + str.slice(1);
 }
@@ -17,14 +19,14 @@ class NullArgumentError extends TypeError {
   }
 }
 function invokeCnstr(cnstr, args) {
-    function F() {
-        // constructor returns **this**
-        return cnstr.apply(this, args);
-    }
-    F.prototype = cnstr.prototype;
-    let f = new F();
-    f.constructor = cnstr;
-    return f;
+  function F() {
+      // constructor returns **this**
+      return cnstr.apply(this, args);
+  }
+  F.prototype = cnstr.prototype;
+  let f = new F();
+  f.constructor = cnstr;
+  return f;
 }
 
 function Builder(paramspec, cnstr) {
@@ -35,25 +37,31 @@ function Builder(paramspec, cnstr) {
   let requiredParams = []; // Array for fast iteration
   let nullables = {}; // Map for fast lookup
   for (const param of paramspec) {
-    if (param.isRequired) { requiredParams.push(param.name) }
-    if (param.isNullable) { nullables[param.name] = true }
+    const name = param.name;
+    if (param.isRequired) { requiredParams.push(name) }
+    if (param.isNullable) { nullables[name] = true }
 
-    Bldr.prototype['set'+captlize1stChar(name)] = function(val) { this.args[name] = val }
+    Bldr.prototype['set'+captlize1stChar(name)] = function(val) {
+      this.args[name] = val;
+      return this;
+    };
 
     if (param.isList && param.isMap) {
-      throw new ParamSpecTypeError(param.name, 'isList and isMap are mutually exclusive');
+      throw new ParamSpecTypeError(name, 'isList and isMap are mutually exclusive');
     }
     if (param.isList) {
       Bldr.prototype['add'+captlize1stChar(name)] = function(val) {
         if (!this.args[name]) { this.args[name] = [] }
         this.args[name].push(val);
-      }
+        return this;
+      };
     }
     if (param.isMap) {
       Bldr.prototype['add'+captlize1stChar(name)] = function(key, val) {
         if (!this.args[name]) { this.args[name] = {} }
         this.args[name][key] = val;
-      }
+        return this;
+      };
     }
   }
 
@@ -68,9 +76,9 @@ function Builder(paramspec, cnstr) {
     }
 
     let argsList = [];
-    for (const param of paramSpec) { argsList.push(this.args[param]) }
+    for (const param of paramspec) { argsList.push(this.args[param.name]) }
     return invokeCnstr(cnstr, argsList);
-  }
+  };
 
   return Bldr;
 }
