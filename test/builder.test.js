@@ -53,6 +53,18 @@ describe('Builder', function() {
       expect(builder.setParam).to.be.a('function');
     });
 
+    it('ignores the itemName attribute', function() {
+      const Bldr = new Builder([
+        { name: 'param', itemName: 'foo' },
+        { name: 'listParam', isList: true, itemName: 'bar' },
+        { name: 'mapParam', isList: true, itemName: 'baz' }
+      ], TestConstructor);
+      const builder = new Bldr();
+      expect(builder.setFoo).to.be.undefined;
+      expect(builder.setBar).to.be.undefined;
+      expect(builder.setBaz).to.be.undefined;
+    });
+
     it('sets the specified parameter', function() {
       const val = 'param value';
       const Bldr = new Builder([{ name: 'param' }], TestConstructor);
@@ -134,6 +146,15 @@ describe('Builder', function() {
       expect(builder.addScalarParam).to.be.undefined;
     });
 
+    it('uses the itemName attribute if it exists', function () {
+      const Bldr = new Builder([
+        { name: 'children', isList: true, itemName: 'child' }
+      ], TestConstructor);
+      const builder = new Bldr();
+      expect(builder.addChild).to.exist;
+      expect(builder.addChild).to.be.a('function');
+    });
+
     it('accumulates in order the values passed to it', function() {
       const Bldr = new Builder([
         { name: 'listParam', isList: true }
@@ -196,6 +217,15 @@ describe('Builder', function() {
       expect(builder.addMapParam).to.exist;
       expect(builder.addMapParam).to.be.a('function');
       expect(builder.addScalarParam).to.be.undefined;
+    });
+
+    it('uses the itemName attribute if it exists', function () {
+      const Bldr = new Builder([
+        { name: 'options', isMap: true, itemName: 'option' }
+      ], TestConstructor);
+      const builder = new Bldr();
+      expect(builder.addOption).to.exist;
+      expect(builder.addOption).to.be.a('function');
     });
 
     it('maps the key-value pairs passed to it into the parameter object', function() {

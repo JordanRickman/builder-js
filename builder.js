@@ -38,6 +38,7 @@ function Builder(paramspec, cnstr) {
   let nullables = {}; // Map for fast lookup
   for (const param of paramspec) {
     const name = param.name;
+    const itemName = (param.isList || param.isMap) && param.itemName ? param.itemName : name;
     if (param.isRequired) { requiredParams.push(name) }
     if (param.isNullable) { nullables[name] = true }
 
@@ -50,14 +51,14 @@ function Builder(paramspec, cnstr) {
       throw new ParamSpecTypeError(name, 'isList and isMap are mutually exclusive');
     }
     if (param.isList) {
-      Bldr.prototype['add'+captlize1stChar(name)] = function(val) {
+      Bldr.prototype['add'+captlize1stChar(itemName)] = function(val) {
         if (!this.args[name]) { this.args[name] = [] }
         this.args[name].push(val);
         return this;
       };
     }
     if (param.isMap) {
-      Bldr.prototype['add'+captlize1stChar(name)] = function(key, val) {
+      Bldr.prototype['add'+captlize1stChar(itemName)] = function(key, val) {
         if (!this.args[name]) { this.args[name] = {} }
         this.args[name][key] = val;
         return this;
