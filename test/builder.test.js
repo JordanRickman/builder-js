@@ -43,7 +43,7 @@ describe('Builder', function() {
       const buildResult = (new Bldr()).build();
       expect(buildResult.args).to.deep.equal([undefined, undefined, undefined]);
     });
-  });
+  }); // end describe #build()
 
   describe('#setX(value)', function() {
     it('is created for a specified parameter', function() {
@@ -108,5 +108,142 @@ describe('Builder', function() {
         .build();
       expect(buildResult.args).to.deep.equal([val1, val2]);
     });
-  });
+  }); // end describe #setX(value)
+
+  describe('#addX(value)', function() {
+    it('is created for any list parameters', function() {
+      const Bldr = new Builder([
+        { name: 'listParam1', isList: true },
+        { name: 'listParam2', isList: true }
+      ], TestConstructor);
+      const builder = new Bldr();
+      expect(builder.addListParam1).to.exist;
+      expect(builder.addListParam1).to.be.a('function');
+      expect(builder.addListParam2).to.exist;
+      expect(builder.addListParam2).to.be.a('function');
+    });
+
+    it('is only created for list or map parameters', function() {
+      const Bldr = new Builder([
+        { name: 'listParam', isList: true },
+        { name: 'scalarParam' }
+      ], TestConstructor);
+      const builder = new Bldr();
+      expect(builder.addListParam).to.exist;
+      expect(builder.addListParam).to.be.a('function');
+      expect(builder.addScalarParam).to.be.undefined;
+    });
+
+    it('accumulates in order the values passed to it', function() {
+      const Bldr = new Builder([
+        { name: 'listParam', isList: true }
+      ], TestConstructor);
+      const buildResult = (new Bldr())
+        .addListParam('val1')
+        .addListParam('val2')
+        .addListParam('val3')
+        .build();
+      expect(buildResult.args).to.deep.equal([['val1', 'val2', 'val3']]);
+    });
+
+    it('appends to the list set by setX(value)', function() {
+      const Bldr = new Builder([
+        { name: 'listParam', isList: true }
+      ], TestConstructor);
+      const buildResult = (new Bldr())
+        .setListParam(['val1', 'val2'])
+        .addListParam('val3')
+        .addListParam('val4')
+        .build();
+      expect(buildResult.args).to.deep.equal([['val1', 'val2', 'val3', 'val4']]);
+    });
+
+    it('is overridden by setX(value)', function() {
+      const Bldr = new Builder([
+        { name: 'listParam', isList: true }
+      ], TestConstructor);
+      const buildResult = (new Bldr())
+        .addListParam('val3')
+        .addListParam('val4')
+        .setListParam(['val1', 'val2'])
+        .build();
+      expect(buildResult.args).to.deep.equal([['val1', 'val2']]);
+    });
+  }); // end describe #addX(value)
+
+  describe('#addX(key, value)', function () {
+    it('is created for any map parameters', function() {
+      const Bldr = new Builder([
+        { name: 'mapParam1', isMap: true },
+        { name: 'mapParam2', isMap: true }
+      ], TestConstructor);
+      const builder = new Bldr();
+      expect(builder.addMapParam1).to.exist;
+      expect(builder.addMapParam1).to.be.a('function');
+      expect(builder.addMapParam2).to.exist;
+      expect(builder.addMapParam2).to.be.a('function');
+    });
+
+    it('is only created for list or map parameters', function() {
+      const Bldr = new Builder([
+        { name: 'listParam', isList: true },
+        { name: 'mapParam', isMap: true },
+        { name: 'scalarParam' }
+      ], TestConstructor);
+      const builder = new Bldr();
+      expect(builder.addListParam).to.exist;
+      expect(builder.addListParam).to.be.a('function');
+      expect(builder.addMapParam).to.exist;
+      expect(builder.addMapParam).to.be.a('function');
+      expect(builder.addScalarParam).to.be.undefined;
+    });
+
+    it('maps the key-value pairs passed to it into the parameter object', function() {
+      const Bldr = new Builder([
+        { name: 'mapParam', isMap: true }
+      ], TestConstructor);
+      const buildResult = (new Bldr())
+        .addMapParam('key1', 'val1')
+        .addMapParam('key2', 'val2')
+        .addMapParam('key3', 'val3')
+        .build();
+      expect(buildResult.args).to.deep.equal([{
+        'key1': 'val1',
+        'key2': 'val2',
+        'key3': 'val3'
+      }]);
+    });
+
+    it('adds to the object set by setX(value)', function() {
+      const Bldr = new Builder([
+        { name: 'mapParam', isMap: true }
+      ], TestConstructor);
+      const buildResult = (new Bldr())
+        .setMapParam({ 'key1': 'val1', 'key2': 'val2' })
+        .addMapParam('key3', 'val3')
+        .addMapParam('key4', 'val4')
+        .build();
+      expect(buildResult.args).to.deep.equal([{
+        'key1': 'val1',
+        'key2': 'val2',
+        'key3': 'val3',
+        'key4': 'val4'
+      }]);
+    });
+
+    it('is overriden by setX(value)', function() {
+      const Bldr = new Builder([
+        { name: 'mapParam', isMap: true }
+      ], TestConstructor);
+      const buildResult = (new Bldr())
+        .addMapParam('key3', 'val3')
+        .addMapParam('key4', 'val4')
+        .setMapParam({ 'key1': 'val1', 'key2': 'val2' })
+        .build();
+      expect(buildResult.args).to.deep.equal([{
+        'key1': 'val1',
+        'key2': 'val2'
+      }]);
+    });
+  }); // end describe #addX(key, value)
 });
