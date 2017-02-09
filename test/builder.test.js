@@ -1,5 +1,8 @@
 const expect = require('chai').expect;
 const Builder = require('../builder');
+const ParamSpecTypeError = Builder.ParamSpecTypeError;
+const MissingArgumentError = Builder.MissingArgumentError;
+const NullArgumentError = Builder.NullArgumentError;
 
 // For verifying that the constructor is called correctly, we need to:
 // 1) capture the constructor arguments
@@ -18,6 +21,69 @@ describe('Builder', function() {
   it('exports the Builder constructor', function() {
     expect(Builder).to.exist;
     expect(Builder).to.be.a('function');
+  });
+
+  describe('constructor', function () {
+    const cnstr = function () { return true; };
+    // Chai throw(...) assertions expect a function, which will be called to see what it throws
+    function buildWithParamSpec(paramspec) {
+      return function() {
+        return new Builder(paramspec, cnstr);
+      }
+    }
+
+    it('requires an array for the first parameter', function () {
+      expect(buildWithParamSpec()).to.throw(TypeError, 'array of parameter'); // undefined
+      expect(buildWithParamSpec(null)).to.throw(TypeError, 'array of parameter'); // null
+      expect(buildWithParamSpec(1)).to.throw(TypeError, 'array of parameter'); // number
+      expect(buildWithParamSpec("hello")).to.throw(TypeError, 'array of parameter'); // string
+      expect(buildWithParamSpec(true)).to.throw(TypeError, 'array of parameter'); // boolean
+      expect(buildWithParamSpec(cnstr)).to.throw(TypeError, 'array of parameter'); // function
+      expect(buildWithParamSpec({})).to.throw(TypeError, 'array of parameter'); // non-array object
+    });
+
+    it('requires a function for the second parameter', function () {
+      function buildWithConstructor(cnstr) {
+        return function() {
+          return new Builder([], cnstr);
+        }
+      }
+
+      expect(buildWithConstructor()).to.throw(TypeError, 'requires a function'); // undefined
+      expect(buildWithConstructor(null)).to.throw(TypeError, 'requires a function'); // null
+      expect(buildWithConstructor(1)).to.throw(TypeError, 'requires a function'); // number
+      expect(buildWithConstructor("hello")).to.throw(TypeError, 'requires a function'); // string
+      expect(buildWithConstructor(true)).to.throw(TypeError, 'requires a function'); // boolean
+      expect(buildWithConstructor({})).to.throw(TypeError, 'requires a function'); // object
+      expect(buildWithConstructor([])).to.throw(TypeError, 'requires a function'); // array
+    });
+
+    it('requires non-null objects for parameter specifications', function () {
+      expect(buildWithParamSpec([null])).to.throw(ParamSpecTypeError); // null
+      expect(buildWithParamSpec([undefined])).to.throw(ParamSpecTypeError); // undefined
+      expect(buildWithParamSpec([cnstr])).to.throw(ParamSpecTypeError); // function
+      expect(buildWithParamSpec([1])).to.throw(ParamSpecTypeError); // number
+      expect(buildWithParamSpec(["hello"])).to.throw(ParamSpecTypeError); // string
+      expect(buildWithParamSpec([true])).to.throw(ParamSpecTypeError); // boolean
+    });
+
+    it('requires parameter specifications to have a string name', function () {
+      expect(buildWithParamSpec([{}])).to.throw(ParamSpecTypeError); // no "name" property
+      expect(buildWithParamSpec([{ name: null }])).to.throw(ParamSpecTypeError); // name is null
+      expect(buildWithParamSpec([{ name: 1 }])).to.throw(ParamSpecTypeError); // name is a number
+      expect(buildWithParamSpec([{ name: true }])).to.throw(ParamSpecTypeError); // name is a boolean
+      expect(buildWithParamSpec([{ name: cnstr }])).to.throw(ParamSpecTypeError); // name is a function
+      expect(buildWithParamSpec([{ name: {} }])).to.throw(ParamSpecTypeError); // name is an object
+      expect(buildWithParamSpec([{ name: [] }])).to.throw(ParamSpecTypeError); // name is an array
+    });
+
+    it('requires parameter itemName, if truthy, to be a string', function () {
+      expect(buildWithParamSpec([{ name: 'myParam', itemName: 1 }])).to.throw(ParamSpecTypeError); // name is a number
+      expect(buildWithParamSpec([{ name: 'myParam', itemName: true }])).to.throw(ParamSpecTypeError); // name is a boolean
+      expect(buildWithParamSpec([{ name: 'myParam', itemName: cnstr }])).to.throw(ParamSpecTypeError); // name is a function
+      expect(buildWithParamSpec([{ name: 'myParam', itemName: {} }])).to.throw(ParamSpecTypeError); // name is an object
+      expect(buildWithParamSpec([{ name: 'myParam', itemName: [] }])).to.throw(ParamSpecTypeError); // name is a number
+    });
   });
 
   describe('#build()', function() {
@@ -42,6 +108,48 @@ describe('Builder', function() {
       ], TestConstructor);
       const buildResult = (new Bldr()).build();
       expect(buildResult.args).to.deep.equal([undefined, undefined, undefined]);
+    });
+
+    it('enforces required parameters', function () {
+      const Bldr = new Builder([
+        { name: 'param1', isRequired: true },
+        { name: 'param2' },
+        { name: 'param3', isRequired: true }
+      ], TestConstructor);
+
+      expect(function () {
+        (new Bldr()).build();
+      }).to.throw(MissingArgumentError);
+      expect(function () {
+        (new Bldr()).setParam2(0).build();
+      }).to.throw(MissingArgumentError);
+      expect(function () {
+        (new Bldr()).setParam1(0).build();
+      }).to.throw(MissingArgumentError);
+      expect(function () {
+        (new Bldr()).setParam3(0).build();
+      }).to.throw(MissingArgumentError);
+      expect(function () {
+        (new Bldr()).setParam1(false).setParam3(false).build();
+      }).to.be.ok;
+    });
+
+    it('enforces non-nullable parameters', function () {
+      const Bldr = new Builder([
+        { name: 'param1', isRequired: true, isNullable: true },
+        { name: 'param2' },
+        { name: 'param3', isRequired: true }
+      ], TestConstructor);
+
+      expect(function () {
+        (new Bldr()).setParam1(null).setParam3(null).build();
+      }).to.throw(NullArgumentError);
+      expect(function () {
+        (new Bldr()).setParam1(undefined).setParam3(0).build();
+      }).to.throw(MissingArgumentError);
+      expect(function () {
+        (new Bldr()).setParam1(null).setParam3(0).build();
+      }).to.be.ok;
     });
   }); // end describe #build()
 
@@ -250,12 +358,13 @@ describe('Builder', function() {
       ], TestConstructor);
       const buildResult = (new Bldr())
         .setMapParam({ 'key1': 'val1', 'key2': 'val2' })
+        .addMapParam('key2', 'val2.2')
         .addMapParam('key3', 'val3')
         .addMapParam('key4', 'val4')
         .build();
       expect(buildResult.args).to.deep.equal([{
         'key1': 'val1',
-        'key2': 'val2',
+        'key2': 'val2.2',
         'key3': 'val3',
         'key4': 'val4'
       }]);
