@@ -1,6 +1,7 @@
 'use strict';
 
 ///// Helper Functions /////
+// See discussion here: http://perfectionkills.com/instanceof-considered-harmful-or-how-to-write-a-robust-isarray/
 function isArray(obj) {
   return Object.prototype.toString.call(obj) === '[object Array]';
 }
@@ -74,6 +75,9 @@ function Builder(paramspec, cnstr) {
     if (param.isNullable) { nullables[name] = true }
 
     Bldr.prototype['set'+captlize1stChar(name)] = function(val) {
+      if (param.isList && !isArray(val)) {
+        throw new TypeError(`List parameter ${name} expects an array.`);
+      }
       this.args[name] = val;
       return this;
     };

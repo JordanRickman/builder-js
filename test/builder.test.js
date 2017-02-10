@@ -148,7 +148,7 @@ describe('Builder', function() {
         (new Bldr()).setParam1(undefined).setParam3(0).build();
       }).to.throw(MissingArgumentError);
       expect(function () {
-        (new Bldr()).setParam1(null).setParam3(0).build();
+        return (new Bldr()).setParam1(null).setParam3(0).build();
       }).to.be.ok;
     });
   }); // end describe #build()
@@ -227,6 +227,26 @@ describe('Builder', function() {
         .setParam1(val1)
         .build();
       expect(buildResult.args).to.deep.equal([val1, val2]);
+    });
+
+    it('requires an array for list parameters', function () {
+      const Bldr = new Builder([
+        { name: 'param1', isList: true }
+      ], TestConstructor);
+      function setParam1(param1Val) {
+        return function () {
+          return (new Bldr()).setParam1(param1Val);
+        };
+      }
+
+      expect(setParam1()).to.throw(TypeError); // undefined
+      expect(setParam1(null)).to.throw(TypeError); // null
+      expect(setParam1(1)).to.throw(TypeError); // number
+      expect(setParam1("hello")).to.throw(TypeError); // string
+      expect(setParam1(true)).to.throw(TypeError); // boolean
+      expect(setParam1(setParam1)).to.throw(TypeError); // function
+      expect(setParam1({})).to.throw(TypeError); // non-array object
+      expect(setParam1([])).to.be.ok; // happy-path
     });
   }); // end describe #setX(value)
 
